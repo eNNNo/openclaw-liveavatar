@@ -1,0 +1,41 @@
+{
+  "id": "liveavatar",
+  "name": "LiveAvatar",
+  "version": "0.1.0",
+  "description": "Talk to your OpenClaw agent face-to-face with a real-time AI avatar powered by HeyGen LiveAvatar",
+  "author": "OpenClaw Community",
+  "license": "MIT",
+  "homepage": "https://github.com/openclaw/openclaw-liveavatar",
+  "keywords": ["liveavatar", "avatar", "voice", "video", "heygen", "chat"],
+  "channel": {
+    "id": "liveavatar",
+    "label": "LiveAvatar",
+    "selectionLabel": "LiveAvatar (Voice/Video)",
+    "docsPath": "/channels/liveavatar",
+    "blurb": "Real-time AI avatar for voice conversations with your agent",
+    "aliases": ["avatar", "video"],
+    "capabilities": {
+      "chatTypes": ["direct"],
+      "voice": true,
+      "video": true
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "apiKey": {
+        "type": "string",
+        "description": "LiveAvatar API key from app.liveavatar.com/developers"
+      },
+      "defaultAvatarId": {
+        "type": "string",
+        "description": "Default avatar ID to use"
+      },
+      "defaultVoiceId": {
+        "type": "string",
+        "description": "Default voice ID to use"
+      }
+    },
+    "required": ["apiKey"]
+  }
+}
