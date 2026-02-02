@@ -1,6 +1,6 @@
 {
   "name": "openclaw-liveavatar",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Real-time video avatar chat interface for OpenClaw - talk face-to-face with your AI agent",
   "type": "module",
   "bin": {

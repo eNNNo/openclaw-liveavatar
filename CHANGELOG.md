@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.1] - 2025-02-02
+
+### Improved
+- Interactive API key setup - CLI now prompts for API key if not set
+- API key is saved to `~/.openclaw-liveavatar/config.json` for future use
+- No need to manually set `LIVEAVATAR_API_KEY` environment variable
+
 ## [1.0.0] - 2025-01-31
 
 ### Added
