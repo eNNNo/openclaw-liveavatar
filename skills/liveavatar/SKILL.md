@@ -1,114 +1,115 @@
 ---
 name: liveavatar
-description: Talk to your OpenClaw agent face-to-face with a real-time AI avatar
+description: Talk face-to-face with your OpenClaw agent using a real-time video avatar powered by LiveAvatar
 user-invocable: true
-metadata: {"openclaw":{"emoji":"🎭","requires":{"bins":["node","npm"]},"install":[{"id":"npm","kind":"npm","package":"openclaw-liveavatar","bins":[],"label":"Install OpenClaw LiveAvatar"}]}}
+metadata: {"openclaw":{"emoji":"🎭","requires":{"env":["LIVEAVATAR_API_KEY"],"bins":["node","npm"]},"install":[{"id":"node","kind":"node","package":"openclaw-liveavatar","bins":["openclaw-liveavatar"],"label":"Install LiveAvatar (npm)"}]}}
 ---
 
 # OpenClaw LiveAvatar
 
 Give your OpenClaw agent a face and voice! This skill launches a real-time AI avatar that you can talk to naturally using your microphone. The avatar listens to you, sends your speech to your OpenClaw agent, and speaks the response back with lip-synced video.
 
-## What You'll Need
+Powered by [LiveAvatar](https://liveavatar.com) - real-time AI avatar technology.
 
-1. **LiveAvatar API Key** - Get one free at https://app.liveavatar.com/developers
-2. **OpenClaw Gateway** running locally (default: ws://127.0.0.1:18789)
+## Setup
 
-## Quick Start
+### 1. Get Your API Key (Free)
 
-When the user runs `/liveavatar`, follow these steps:
+1. Go to [app.liveavatar.com](https://app.liveavatar.com)
+2. Create a free account
+3. Copy your API key from the dashboard
 
-### Step 1: Check for API Key
-
-First, check if a LiveAvatar API key is configured:
-
-```bash
-# Check if the key exists in environment or OpenClaw config
-grep -q "LIVEAVATAR_API_KEY" ~/.openclaw/openclaw.json 2>/dev/null || echo "NOT_FOUND"
-```
-
-If NOT_FOUND, ask the user:
-
-> I need your LiveAvatar API key to continue. You can get a free one at:
-> https://app.liveavatar.com/developers
->
-> Please paste your API key:
-
-Store the key in the user's OpenClaw config for future use.
-
-### Step 2: Clone and Setup
+### 2. Set Your API Key
 
 ```bash
-# Clone the repository if not present
-if [ ! -d ~/.openclaw/extensions/liveavatar ]; then
-  git clone https://github.com/openclaw/openclaw-liveavatar.git ~/.openclaw/extensions/liveavatar
-fi
-
-cd ~/.openclaw/extensions/liveavatar
-
-# Install dependencies
-npm install
+export LIVEAVATAR_API_KEY=your_api_key_here
 ```
 
-### Step 3: Configure Environment
+Or add to `~/.openclaw/openclaw.json`:
 
-Create `.env.local` with the API key:
-
-```bash
-cat > .env.local << EOF
-LIVEAVATAR_API_KEY=<user's API key>
-OPENCLAW_GATEWAY_URL=ws://127.0.0.1:18789
-EOF
+```json
+{
+  "skills": {
+    "entries": {
+      "liveavatar": {
+        "env": {
+          "LIVEAVATAR_API_KEY": "your_api_key_here"
+        }
+      }
+    }
+  }
+}
 ```
 
-### Step 4: Start the Application
+## Usage
 
-```bash
-npm run dev
-```
+Run `/liveavatar` to start the video avatar interface.
 
-### Step 5: Open in Browser
+When the user runs this command:
 
-Tell the user:
+1. **Check if LIVEAVATAR_API_KEY is set**. If not, tell them:
+   > You need a LiveAvatar API key. Get one free at https://app.liveavatar.com
+   > Then set it: `export LIVEAVATAR_API_KEY=your_key`
 
-> Your OpenClaw LiveAvatar is starting!
-> Open http://localhost:3001 in your browser to talk to your agent.
->
-> Tips:
-> - Select your microphone from the dropdown
-> - Click the green mic button to start speaking
-> - The avatar will respond with your agent's answers
-> - Click the red X to end the session
+2. **Launch the interface**:
+   ```bash
+   npx openclaw-liveavatar
+   ```
+
+3. **Tell the user**:
+   > Your LiveAvatar interface is starting at http://localhost:3001
+   > It will connect automatically to your OpenClaw Gateway.
+   >
+   > Tips:
+   > - Allow microphone access when prompted
+   > - Click the green mic button to speak
+   > - The avatar will respond with your agent's answers
+   > - Click the X button to end the session
 
 ## How It Works
 
 ```
-You speak → LiveAvatar transcribes → OpenClaw agent processes → Avatar speaks response
+You speak → Avatar transcribes → OpenClaw processes → Avatar speaks response
 ```
 
-1. **Voice Input**: You speak into your microphone
+1. **Voice Input**: Speak into your microphone
 2. **Transcription**: LiveAvatar converts speech to text
-3. **Agent Processing**: Text is sent to your OpenClaw agent via the Gateway
-4. **Response**: Agent's response is sent back to LiveAvatar
-5. **Avatar Speech**: The avatar speaks the response with lip-sync
+3. **Agent Processing**: Text sent to OpenClaw Gateway (port 18789)
+4. **Response**: Agent response returned
+5. **Avatar Speech**: Avatar speaks with natural lip-sync
+
+## Features
+
+- Real-time video avatar with expressions
+- Voice-to-voice conversations
+- Text chat fallback option
+- Smart TTS summarization for long responses
+- Echo cancellation (won't respond to itself)
+- Multiple avatar choices
+
+## Requirements
+
+- OpenClaw Gateway running (`openclaw gateway`)
+- LiveAvatar API key
+- Modern browser with microphone
+- Node.js 18+
 
 ## Troubleshooting
 
-### "OpenClaw Disconnected" error
-Make sure your OpenClaw Gateway is running:
+**"OpenClaw Disconnected"**
 ```bash
 openclaw gateway
 ```
 
-### "No avatars available"
-Check that your LIVEAVATAR_API_KEY is valid and set in `.env.local`
+**"No avatars available"**
+- Check LIVEAVATAR_API_KEY is set correctly
 
-### Avatar not responding
-1. Check that your microphone is not muted
-2. Ensure the Gateway connection shows "Connected"
-3. Try refreshing the page
+**Voice not working**
+- Allow microphone access in browser
+- Check system audio settings
 
-## Credits
+## Links
 
-- Uses [HeyGen LiveAvatar](https://liveavatar.com) for real-time avatar rendering
-- Part of the [OpenClaw](https://openclaw.ai) ecosystem
+- [LiveAvatar](https://liveavatar.com) - Real-time avatar platform
+- [OpenClaw](https://openclaw.ai) - Your personal AI assistant
+- [GitHub](https://github.com/eNNNo/openclaw-liveavatar) - Source code

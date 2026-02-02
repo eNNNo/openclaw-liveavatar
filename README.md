@@ -1,6 +1,6 @@
 # OpenClaw LiveAvatar
 
-Talk to your OpenClaw agent face-to-face with a real-time AI avatar powered by [HeyGen LiveAvatar](https://liveavatar.com).
+Give your OpenClaw agent a face and voice! Talk face-to-face with a real-time AI avatar powered by [LiveAvatar](https://liveavatar.com).
 
 ![OpenClaw LiveAvatar Demo](public/demo.png)
 
@@ -9,57 +9,108 @@ Talk to your OpenClaw agent face-to-face with a real-time AI avatar powered by [
 - **Voice-to-Voice Conversation**: Speak naturally and hear your agent respond
 - **Real-time Avatar**: Lip-synced video avatar with natural expressions
 - **OpenClaw Integration**: Connects to your local OpenClaw Gateway
-- **Microphone Selection**: Choose your preferred audio input device
-- **Audio Level Visualization**: See when you're being heard
-- **Chat Transcript**: View the conversation history
+- **Smart TTS Summarization**: Long responses are summarized for natural speech
+- **Echo Cancellation**: Won't respond to itself
+- **Multiple Avatar Choices**: Select from custom or public avatars
+- **Chat Transcript**: View the full conversation history
 
-## Prerequisites
+## Installation
 
-- Node.js 18+
-- [OpenClaw](https://openclaw.ai) installed and Gateway running
-- [LiveAvatar API Key](https://app.liveavatar.com/developers) (free tier available)
+### Option 1: ClawHub Skill (Recommended)
 
-## Quick Start
+If you have [OpenClaw](https://openclaw.ai) installed:
 
-### 1. Clone and Install
+```bash
+clawhub install liveavatar
+```
+
+Then run the `/liveavatar` command in any OpenClaw chat.
+
+### Option 2: NPX (Quick Start)
+
+```bash
+# Set your API key
+export LIVEAVATAR_API_KEY=your_key_here
+
+# Start OpenClaw Gateway (in another terminal)
+openclaw gateway
+
+# Run LiveAvatar
+npx openclaw-liveavatar
+```
+
+### Option 3: Global Install
+
+```bash
+npm install -g openclaw-liveavatar
+
+# Then run anytime with:
+openclaw-liveavatar
+```
+
+### Option 4: Development Setup
 
 ```bash
 git clone https://github.com/eNNNo/openclaw-liveavatar.git
 cd openclaw-liveavatar
 npm install
-```
-
-### 2. Configure Environment
-
-```bash
 cp .env.example .env.local
+# Edit .env.local with your API key
+npm run dev
 ```
 
-Edit `.env.local` and add your LiveAvatar API key:
+## Prerequisites
 
+- Node.js 18+
+- [OpenClaw](https://openclaw.ai) installed with Gateway running
+- [LiveAvatar API Key](https://app.liveavatar.com) (free tier available)
+
+## Setup
+
+### 1. Get Your API Key (Free)
+
+1. Go to [app.liveavatar.com](https://app.liveavatar.com)
+2. Create a free account
+3. Copy your API key from the dashboard
+
+### 2. Set Your API Key
+
+**Option A: Environment variable**
+```bash
+export LIVEAVATAR_API_KEY=your_api_key_here
 ```
-LIVEAVATAR_API_KEY=your-api-key-here
+
+**Option B: OpenClaw config** (`~/.openclaw/openclaw.json`)
+```json
+{
+  "skills": {
+    "entries": {
+      "liveavatar": {
+        "env": {
+          "LIVEAVATAR_API_KEY": "your_api_key_here"
+        }
+      }
+    }
+  }
+}
 ```
 
 ### 3. Start OpenClaw Gateway
-
-In a separate terminal:
 
 ```bash
 openclaw gateway
 ```
 
-### 4. Start LiveAvatar
+### 4. Launch LiveAvatar
 
 ```bash
-npm run dev
+npx openclaw-liveavatar
+# Or: /liveavatar (if installed as skill)
 ```
 
-### 5. Open in Browser
+The interface will open at http://localhost:3001
 
-Navigate to http://localhost:3000
-
-> **Demo Mode**: If OpenClaw Gateway isn't running, the app will start in Demo Mode where you can interact with the avatar and learn about the integration. Type "help" to see available demo commands.
+> **Demo Mode**: If OpenClaw Gateway isn't running, the app will start in Demo Mode where you can interact with the avatar and learn about the integration.
 
 ## How It Works
 

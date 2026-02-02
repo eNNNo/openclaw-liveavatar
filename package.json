@@ -1,16 +1,53 @@
 {
   "name": "openclaw-liveavatar",
-  "version": "0.1.0",
-  "private": true,
+  "version": "1.0.0",
+  "description": "Real-time video avatar chat interface for OpenClaw - talk face-to-face with your AI agent",
   "type": "module",
+  "bin": {
+    "openclaw-liveavatar": "./bin/cli.js"
+  },
   "scripts": {
     "dev": "next dev -p 3001 --turbopack",
     "build": "next build",
-    "start": "next start -p 3001"
+    "start": "next start -p 3001",
+    "prepublishOnly": "npm run build"
   },
+  "keywords": [
+    "openclaw",
+    "liveavatar",
+    "heygen",
+    "ai",
+    "avatar",
+    "voice",
+    "chat",
+    "video",
+    "assistant"
+  ],
+  "author": "eNNNo",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eNNNo/openclaw-liveavatar.git"
+  },
+  "bugs": {
+    "url": "https://github.com/eNNNo/openclaw-liveavatar/issues"
+  },
+  "homepage": "https://github.com/eNNNo/openclaw-liveavatar#readme",
+  "files": [
+    "bin",
+    "app",
+    "src",
+    "public",
+    ".next",
+    "next.config.ts",
+    "tailwind.config.ts",
+    "postcss.config.mjs",
+    "tsconfig.json"
+  ],
   "dependencies": {
     "@heygen/liveavatar-web-sdk": "^0.0.10",
     "next": "^15.4.2",
+    "open": "^10.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
@@ -22,5 +59,8 @@
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
     "typescript": "5.8.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

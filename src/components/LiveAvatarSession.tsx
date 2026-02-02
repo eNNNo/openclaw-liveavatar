@@ -456,16 +456,16 @@ const ChatPanel: React.FC = () => {
               className={`flex ${msg.sender === MessageSender.USER ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[85%] px-3 py-2 rounded-lg text-sm ${
+                className={`max-w-[90%] px-4 py-3 rounded-xl text-sm leading-relaxed ${
                   msg.sender === MessageSender.USER
                     ? "bg-blue-600 text-white"
                     : "bg-gray-700 text-gray-100"
                 }`}
               >
-                <div className="text-xs opacity-70 mb-1">
+                <div className="text-xs opacity-70 mb-1.5 font-medium">
                   {msg.sender === MessageSender.USER ? "You" : "OpenClaw Agent"}
                 </div>
-                {msg.message}
+                <div className="whitespace-pre-wrap">{msg.message}</div>
               </div>
             </div>
           ))
@@ -520,9 +520,8 @@ const ChatPanel: React.FC = () => {
 const LiveAvatarSessionComponent: React.FC<{
   onSessionStopped: () => void;
   onAvatarChange?: (avatarId: string) => void;
-}> = ({ onSessionStopped, onAvatarChange }) => {
+}> = ({ onSessionStopped }) => {
   const [selectedMicId, setSelectedMicId] = useState("default");
-  const [showAvatarSelector, setShowAvatarSelector] = useState(false);
 
   const {
     sessionState,
@@ -648,29 +647,6 @@ const LiveAvatarSessionComponent: React.FC<{
 
           {/* Bottom controls overlay */}
           <div className="absolute bottom-4 right-4 flex items-center gap-2">
-            {/* Change avatar button */}
-            {onAvatarChange && (
-              <button
-                className="bg-white/20 hover:bg-white/30 text-white p-3 rounded-full transition-colors"
-                onClick={() => setShowAvatarSelector(true)}
-                title="Change avatar"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
-              </button>
-            )}
-
             {/* End call button */}
             <button
               className="bg-red-500 hover:bg-red-600 text-white p-3 rounded-full transition-colors"
@@ -819,9 +795,9 @@ const LiveAvatarSessionComponent: React.FC<{
         </div>
       </div>
 
-      {/* Right side - Chat panel */}
+      {/* Right side - Chat panel (wider for better readability) */}
       <div
-        className="w-80 flex flex-col overflow-hidden"
+        className="w-[420px] flex flex-col overflow-hidden"
         style={{
           height: leftColumnHeight > 0 ? `${leftColumnHeight}px` : "500px",
         }}
@@ -829,17 +805,6 @@ const LiveAvatarSessionComponent: React.FC<{
         <ChatPanel />
       </div>
 
-      {/* Avatar selector modal */}
-      {onAvatarChange && (
-        <AvatarSelector
-          isOpen={showAvatarSelector}
-          onClose={() => setShowAvatarSelector(false)}
-          onAvatarChange={(avatarId) => {
-            stopSession();
-            onAvatarChange(avatarId);
-          }}
-        />
-      )}
     </div>
   );
 };

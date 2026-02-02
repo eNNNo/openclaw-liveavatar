@@ -48,14 +48,31 @@ export interface ConnectResponse {
 
 // Agent request/response
 export interface AgentRequest {
-  text: string;
+  message: string;
+  idempotencyKey: string;
   conversationId?: string;
 }
 
+// Agent event from gateway (matches OpenClaw protocol)
+export interface AgentEvent {
+  runId: string;
+  seq: number;
+  stream: string;
+  ts: number;
+  sessionKey?: string;
+  data?: {
+    phase?: string;
+    text?: string;
+    delta?: string;
+    error?: string;
+    [key: string]: unknown;
+  };
+}
+
+// Simplified response returned by sendToAgent
 export interface AgentResponse {
   runId: string;
   status: "completed" | "failed" | "cancelled";
-  summary?: string;
   text?: string;
 }
 

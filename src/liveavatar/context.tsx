@@ -25,6 +25,81 @@ import {
 } from "../gateway/client";
 import { GatewayConnectionState } from "../gateway/types";
 
+/**
+ * Truncate text for TTS to avoid overwhelming the avatar with long responses.
+ * Keeps approximately 2-3 sentences (around 200 characters max).
+ */
+const truncateForTTS = (text: string, maxLength: number = 200): string => {
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  // Try to cut at a sentence boundary
+  const truncated = text.substring(0, maxLength);
+
+  // Find the last sentence ending (., !, ?)
+  const lastSentenceEnd = Math.max(
+    truncated.lastIndexOf(". "),
+    truncated.lastIndexOf("! "),
+    truncated.lastIndexOf("? "),
+    truncated.lastIndexOf(".\n"),
+    truncated.lastIndexOf("!\n"),
+    truncated.lastIndexOf("?\n")
+  );
+
+  if (lastSentenceEnd > maxLength * 0.5) {
+    // Cut at sentence boundary if it's past halfway
+    return truncated.substring(0, lastSentenceEnd + 1).trim();
+  }
+
+  // Otherwise cut at last space and add ellipsis
+  const lastSpace = truncated.lastIndexOf(" ");
+  if (lastSpace > maxLength * 0.7) {
+    return truncated.substring(0, lastSpace).trim() + "...";
+  }
+
+  return truncated.trim() + "...";
+};
+
+/**
+ * Placeholder phrases to speak when OpenClaw takes longer than 2 seconds to respond
+ */
+const PROCESSING_PHRASES = [
+  "Let me think about that...",
+  "One moment please...",
+  "Let me check on that...",
+  "Give me a second...",
+  "Looking into that...",
+  "Hmm, let me see...",
+];
+
+const getRandomProcessingPhrase = (): string => {
+  return PROCESSING_PHRASES[Math.floor(Math.random() * PROCESSING_PHRASES.length)];
+};
+
+/**
+ * Intro phrases for when the avatar session starts
+ */
+const INTRO_PHRASES = [
+  "Hey there! I'm ready to help. What can I do for you today?",
+  "Hi! Good to see you. What would you like to work on?",
+  "Hello! I'm all set. What's on your mind?",
+  "Hey! Ready when you are. What can I help you with?",
+  "Hi there! Let's get started. What do you need?",
+  "Hello! I'm here to assist. What are you working on today?",
+];
+
+const DEMO_INTRO_PHRASES = [
+  "Hi there! Welcome to the OpenClaw demo. Feel free to ask me anything, or say 'help' to learn more!",
+  "Hello! This is the OpenClaw LiveAvatar demo. Try asking me what I can do!",
+  "Hey! Welcome to the demo. I'm here to show you how this works. What would you like to know?",
+];
+
+const getRandomIntroPhrase = (isDemoMode: boolean): string => {
+  const phrases = isDemoMode ? DEMO_INTRO_PHRASES : INTRO_PHRASES;
+  return phrases[Math.floor(Math.random() * phrases.length)];
+};
+
 type LiveAvatarContextProps = {
   sessionRef: React.RefObject<LiveAvatarSession>;
 
@@ -240,7 +315,8 @@ const useOpenClawBridge = (
   sessionRef: React.RefObject<LiveAvatarSession>,
   addMessage: (message: LiveAvatarSessionMessage) => void,
   recentTypedMessages: React.RefObject<Set<string>>,
-  recentMessagesRef: React.RefObject<Set<string>>
+  recentMessagesRef: React.RefObject<Set<string>>,
+  isAvatarTalkingRef: React.RefObject<boolean>
 ) => {
   const [gatewayState, setGatewayState] = useState<GatewayConnectionState>("disconnected");
   const [isProcessingAgent, setIsProcessingAgent] = useState(false);
@@ -291,6 +367,12 @@ const useOpenClawBridge = (
       const text = data.text || data.transcript || "";
       if (!text.trim()) return;
 
+      // Skip if avatar is currently speaking (avoid echo/feedback loop)
+      if (isAvatarTalkingRef.current) {
+        console.log("[Voice] Ignoring transcription while avatar is speaking:", text.substring(0, 30));
+        return;
+      }
+
       // Skip if this message was recently typed (to avoid duplicates)
       if (recentTypedMessages.current?.has(text.trim())) {
         recentTypedMessages.current.delete(text.trim());
@@ -316,6 +398,7 @@ const useOpenClawBridge = (
         setIsProcessingAgent(true);
 
         let responseText: string;
+        let placeholderSpoken = false;
 
         if (isDemoMode) {
           // Demo mode: use comprehensive FAQ responses
@@ -329,7 +412,29 @@ const useOpenClawBridge = (
             responseText = "I'm not connected to the agent. Please check the Gateway connection.";
           } else {
             console.log("[OpenClaw] Sending to agent:", text);
+
+            // Set up placeholder timeout - speak a filler if response takes > 2s
+            let placeholderTimeout: NodeJS.Timeout | null = null;
+            if (session && session.state === SessionState.CONNECTED) {
+              placeholderTimeout = setTimeout(async () => {
+                const placeholder = getRandomProcessingPhrase();
+                console.log("[Avatar] Speaking placeholder (slow response):", placeholder);
+                placeholderSpoken = true;
+                try {
+                  await session.repeat(placeholder);
+                } catch (err) {
+                  console.error("[Avatar] Failed to speak placeholder:", err);
+                }
+              }, 2000);
+            }
+
             const response = await gateway.sendToAgent(text);
+
+            // Clear placeholder timeout if response came back in time
+            if (placeholderTimeout) {
+              clearTimeout(placeholderTimeout);
+            }
+
             console.log("[OpenClaw] Agent response:", response);
 
             if (response.status === "completed" && response.text) {
@@ -340,18 +445,37 @@ const useOpenClawBridge = (
           }
         }
 
-        // Add agent response to chat
+        // Parse response to extract TTS summary and full message
+        const gateway = gatewayRef.current;
+        let ttsText = responseText;
+        let displayText = responseText;
+
+        if (!isDemoMode && gateway) {
+          const parsed = gateway.parseResponse(responseText);
+          ttsText = parsed.tts;
+          displayText = parsed.full;
+        } else {
+          // Demo mode: just truncate for TTS
+          ttsText = truncateForTTS(responseText);
+        }
+
+        // Add full response to chat (without the TTS block)
         addMessage({
           sender: MessageSender.AVATAR,
-          message: responseText,
+          message: displayText,
           timestamp: Date.now(),
         });
 
-        // Make avatar speak the response
+        // Make avatar speak - only the TTS summary
+        // If placeholder was spoken, wait a moment before speaking the actual response
         if (session && session.state === SessionState.CONNECTED) {
           try {
-            console.log("[Avatar] Making avatar speak:", responseText);
-            await session.repeat(responseText);
+            if (placeholderSpoken) {
+              // Small delay to let placeholder finish
+              await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            console.log("[Avatar] Speaking TTS summary:", ttsText);
+            await session.repeat(ttsText);
           } catch (speakErr) {
             console.error("[Avatar] Failed to make avatar speak:", speakErr);
           }
@@ -411,22 +535,70 @@ export const LiveAvatarContextProvider = ({
   const { isMuted, voiceChatState } = useVoiceChatState(sessionRef);
   const { isUserTalking, isAvatarTalking } = useTalkingState(sessionRef);
 
+  // Ref to track avatar talking state for use in async handlers (avoids stale closure)
+  const isAvatarTalkingRef = useRef(false);
+  useEffect(() => {
+    isAvatarTalkingRef.current = isAvatarTalking;
+  }, [isAvatarTalking]);
+
   // Bridge to OpenClaw Gateway - this determines demo mode
   const { gatewayState, isProcessingAgent: isProcessingVoiceAgent, isDemoMode } = useOpenClawBridge(
     sessionRef,
     addMessage,
     recentTypedMessagesRef,
-    recentMessagesRef
+    recentMessagesRef,
+    isAvatarTalkingRef
   );
 
   // State for tracking if we're processing a typed message
   const [isProcessingTypedMessage, setIsProcessingTypedMessage] = useState(false);
   const gatewayClientRef = useRef<OpenClawGatewayClient | null>(null);
+  const hasPlayedIntroRef = useRef(false);
 
   // Store gateway client reference
   useEffect(() => {
     gatewayClientRef.current = getGatewayClient();
   }, []);
+
+  // Play intro message when stream is ready
+  useEffect(() => {
+    console.log("[Intro] Effect triggered - isStreamReady:", isStreamReady, "hasPlayed:", hasPlayedIntroRef.current);
+
+    if (!isStreamReady) return;
+    if (hasPlayedIntroRef.current) return;
+
+    const session = sessionRef.current;
+    if (!session) {
+      console.log("[Intro] No session ref");
+      return;
+    }
+
+    console.log("[Intro] Session state:", session.state);
+
+    // Mark as played immediately to prevent double-play
+    hasPlayedIntroRef.current = true;
+
+    const playIntro = async () => {
+      const introPhrase = getRandomIntroPhrase(isDemoMode);
+
+      addMessage({
+        sender: MessageSender.AVATAR,
+        message: introPhrase,
+        timestamp: Date.now(),
+      });
+
+      try {
+        console.log("[Intro] Playing intro:", introPhrase);
+        await session.repeat(introPhrase);
+        console.log("[Intro] Intro played successfully");
+      } catch (err) {
+        console.error("[Intro] Failed to play intro:", err);
+      }
+    };
+
+    // Small delay to ensure avatar is fully ready to speak
+    setTimeout(playIntro, 1000);
+  }, [isStreamReady, isDemoMode, addMessage, sessionRef]);
 
   // Add a typed message (from text input) - adds to messages and gets response
   const addTypedMessage = useCallback(
@@ -449,6 +621,8 @@ export const LiveAvatarContextProvider = ({
         setIsProcessingTypedMessage(true);
 
         let responseText: string;
+        let placeholderSpoken = false;
+        const session = sessionRef.current;
 
         if (isDemoMode) {
           // Demo mode: use comprehensive FAQ responses
@@ -462,7 +636,29 @@ export const LiveAvatarContextProvider = ({
             responseText = "I'm not connected to the OpenClaw agent yet. Please make sure the Gateway is running.";
           } else {
             console.log("[OpenClaw] Sending typed message to agent:", text);
+
+            // Set up placeholder timeout - speak a filler if response takes > 2s
+            let placeholderTimeout: NodeJS.Timeout | null = null;
+            if (session && session.state === SessionState.CONNECTED) {
+              placeholderTimeout = setTimeout(async () => {
+                const placeholder = getRandomProcessingPhrase();
+                console.log("[Avatar] Speaking placeholder (slow response):", placeholder);
+                placeholderSpoken = true;
+                try {
+                  await session.repeat(placeholder);
+                } catch (err) {
+                  console.error("[Avatar] Failed to speak placeholder:", err);
+                }
+              }, 2000);
+            }
+
             const response = await gateway.sendToAgent(text);
+
+            // Clear placeholder timeout if response came back in time
+            if (placeholderTimeout) {
+              clearTimeout(placeholderTimeout);
+            }
+
             console.log("[OpenClaw] Agent response:", response);
 
             if (response.status === "completed" && response.text) {
@@ -473,19 +669,37 @@ export const LiveAvatarContextProvider = ({
           }
         }
 
-        // Add agent response to chat
+        // Parse response to extract TTS summary and full message
+        const gateway = gatewayClientRef.current;
+        let ttsText = responseText;
+        let displayText = responseText;
+
+        if (!isDemoMode && gateway) {
+          const parsed = gateway.parseResponse(responseText);
+          ttsText = parsed.tts;
+          displayText = parsed.full;
+        } else {
+          // Demo mode: just truncate for TTS
+          ttsText = truncateForTTS(responseText);
+        }
+
+        // Add full response to chat (without the TTS block)
         addMessage({
           sender: MessageSender.AVATAR,
-          message: responseText,
+          message: displayText,
           timestamp: Date.now(),
         });
 
-        // Make avatar speak the response using repeat()
-        const session = sessionRef.current;
+        // Make avatar speak - only the TTS summary
+        // If placeholder was spoken, wait a moment before speaking the actual response
         if (session && session.state === SessionState.CONNECTED) {
           try {
-            console.log("[Avatar] Making avatar speak:", responseText);
-            await session.repeat(responseText);
+            if (placeholderSpoken) {
+              // Small delay to let placeholder finish
+              await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            console.log("[Avatar] Speaking TTS summary:", ttsText);
+            await session.repeat(ttsText);
           } catch (speakErr) {
             console.error("[Avatar] Failed to make avatar speak:", speakErr);
           }
