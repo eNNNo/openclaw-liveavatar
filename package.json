@@ -37,11 +37,11 @@
     "bin",
     "app",
     "src",
-    "public",
     ".next",
-    "next.config.ts",
-    "tailwind.config.ts",
-    "postcss.config.mjs",
+    "!.next/cache",
+    "next.config.js",
+    "tailwind.config.cjs",
+    "postcss.config.cjs",
     "tsconfig.json"
   ],
   "dependencies": {
